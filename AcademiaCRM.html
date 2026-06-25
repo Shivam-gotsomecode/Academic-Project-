@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AcademiaCRM — B2B Academia Sales CRM</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f5f5f4;
+    --bg-tertiary: #f0efed;
+    --text-primary: #1a1a18;
+    --text-secondary: #5f5e5a;
+    --text-tertiary: #888780;
+    --border: rgba(0,0,0,0.1);
+    --border-md: rgba(0,0,0,0.18);
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+    --blue: #185FA5;
+    --blue-light: #E6F1FB;
+    --blue-dark: #0C447C;
+    --green: #0F6E56;
+    --green-light: #E1F5EE;
+    --amber: #854F0B;
+    --amber-light: #FAEEDA;
+    --red: #A32D2D;
+    --red-light: #FCEBEB;
+    --purple: #534AB7;
+    --purple-light: #EEEDFE;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg-primary: #1e1e1c;
+      --bg-secondary: #2a2a28;
+      --bg-tertiary: #242422;
+      --text-primary: #e8e6df;
+      --text-secondary: #a0a09a;
+      --text-tertiary: #6e6e68;
+      --border: rgba(255,255,255,0.1);
+      --border-md: rgba(255,255,255,0.18);
+      --blue-light: #0c2a45;
+      --green-light: #042a22;
+      --amber-light: #2a1a05;
+      --red-light: #2a0f0f;
+      --purple-light: #1a1840;
+    }
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-size: 14px; color: var(--text-primary); background: var(--bg-tertiary); min-height: 100vh; }
+  .crm-root { display: flex; flex-direction: column; min-height: 100vh; }
+
+  /* TOPBAR */
+  .topbar { background: var(--bg-primary); border-bottom: 0.5px solid var(--border); padding: 0 20px; display: flex; align-items: center; gap: 16px; height: 52px; position: sticky; top: 0; z-index: 50; }
+  .topbar-logo { font-size: 15px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+  .topbar-logo i { color: var(--blue); font-size: 20px; }
+  .topbar-nav { display: flex; gap: 2px; margin-left: 24px; overflow-x: auto; }
+  .nav-btn { background: none; border: none; padding: 6px 12px; border-radius: var(--radius-md); font-size: 13px; cursor: pointer; color: var(--text-secondary); transition: background 0.15s; white-space: nowrap; display: flex; align-items: center; gap: 5px; }
+  .nav-btn.active { background: var(--bg-secondary); color: var(--text-primary); font-weight: 500; }
+  .nav-btn:hover:not(.active) { background: var(--bg-secondary); }
+  .topbar-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .btn-primary { background: var(--blue); color: white; border: none; padding: 7px 14px; border-radius: var(--radius-md); font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .btn-primary:hover { background: var(--blue-dark); }
+
+  /* LAYOUT */
+  .main { display: flex; flex: 1; }
+  .sidebar { width: 200px; background: var(--bg-primary); border-right: 0.5px solid var(--border); padding: 16px 12px; flex-shrink: 0; position: sticky; top: 52px; height: calc(100vh - 52px); overflow-y: auto; }
+  .sidebar-section { margin-bottom: 20px; }
+  .sidebar-label { font-size: 11px; font-weight: 500; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; padding: 0 8px; margin-bottom: 6px; }
+  .sidebar-item { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: var(--radius-md); cursor: pointer; color: var(--text-secondary); font-size: 13px; transition: background 0.1s; }
+  .sidebar-item:hover { background: var(--bg-secondary); color: var(--text-primary); }
+  .sidebar-item.active { background: var(--blue-light); color: var(--blue); font-weight: 500; }
+  .sidebar-item i { font-size: 16px; }
+  .badge-count { margin-left: auto; background: var(--bg-secondary); color: var(--text-secondary); font-size: 11px; padding: 1px 6px; border-radius: 10px; }
+  .badge-count.hot { background: var(--red-light); color: var(--red); }
+  .content { flex: 1; overflow-y: auto; padding: 20px; min-width: 0; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* CARDS & METRICS */
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
+  .section-title { font-size: 16px; font-weight: 500; }
+  .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 20px; }
+  .metric-card { background: var(--bg-secondary); border-radius: var(--radius-md); padding: 14px 16px; }
+  .metric-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
+  .metric-value { font-size: 22px; font-weight: 500; }
+  .metric-delta { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
+  .metric-delta.up { color: #3B6D11; }
+  .card { background: var(--bg-primary); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 16px; }
+  .card-title { font-size: 13px; font-weight: 500; margin-bottom: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; }
+  .two-col { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,340px); gap: 16px; }
+  @media (max-width: 800px) { .two-col { grid-template-columns: 1fr; } .sidebar { display: none; } }
+
+  /* PIPELINE */
+  .pipeline { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 20px; }
+  .pipeline-col { min-width: 165px; flex-shrink: 0; }
+  .pipeline-header { font-size: 12px; font-weight: 500; padding: 6px 10px; border-radius: var(--radius-md); margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
+  .ph-new { background: var(--blue-light); color: var(--blue); }
+  .ph-contacted { background: var(--green-light); color: var(--green); }
+  .ph-meeting { background: var(--amber-light); color: var(--amber); }
+  .ph-proposal { background: var(--purple-light); color: var(--purple); }
+  .ph-nego { background: #FAECE7; color: #993C1D; }
+  .ph-closed { background: #EAF3DE; color: #3B6D11; }
+  .lead-card { background: var(--bg-primary); border: 0.5px solid var(--border); border-radius: var(--radius-md); padding: 10px; margin-bottom: 8px; cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s; }
+  .lead-card:hover { border-color: var(--blue); }
+  .lead-name { font-size: 13px; font-weight: 500; margin-bottom: 3px; }
+  .lead-meta { font-size: 11px; color: var(--text-secondary); }
+  .priority-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 4px; flex-shrink: 0; }
+  .p-high { background: #E24B4A; }
+  .p-med { background: #EF9F27; }
+  .p-low { background: #639922; }
+  .score-bar { height: 3px; border-radius: 2px; background: var(--bg-secondary); margin-top: 6px; overflow: hidden; }
+  .score-fill { height: 100%; border-radius: 2px; background: var(--blue); }
+
+  /* STATUS PILLS */
+  .status-pill { font-size: 11px; padding: 3px 8px; border-radius: 10px; white-space: nowrap; }
+  .s-new { background: var(--blue-light); color: #185FA5; }
+  .s-contacted { background: var(--green-light); color: #0F6E56; }
+  .s-meeting { background: var(--amber-light); color: #854F0B; }
+  .s-proposal { background: var(--purple-light); color: #534AB7; }
+  .s-nego { background: #FAECE7; color: #993C1D; }
+  .s-closed { background: #EAF3DE; color: #3B6D11; }
+
+  /* AVATARS */
+  .avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; flex-shrink: 0; }
+  .av-blue { background: var(--blue-light); color: var(--blue-dark); }
+  .av-green { background: var(--green-light); color: #085041; }
+  .av-amber { background: var(--amber-light); color: #633806; }
+  .av-purple { background: var(--purple-light); color: #3C3489; }
+
+  /* TABLE */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 8px 12px; font-size: 11px; font-weight: 500; color: var(--text-secondary); border-bottom: 0.5px solid var(--border); text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap; }
+  td { padding: 10px 12px; border-bottom: 0.5px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--bg-secondary); }
+
+  /* FOLLOW-UPS */
+  .tab-bar { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 0.5px solid var(--border); }
+  .tab { padding: 8px 14px; font-size: 13px; cursor: pointer; color: var(--text-secondary); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .tab.active { color: var(--blue); border-bottom-color: var(--blue); font-weight: 500; }
+  .follow-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 0.5px solid var(--border); }
+  .follow-item:last-child { border-bottom: none; }
+  .follow-icon { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .fi-blue { background: var(--blue-light); color: var(--blue); }
+  .fi-amber { background: var(--amber-light); color: var(--amber); }
+  .fi-green { background: var(--green-light); color: var(--green); }
+  .fi-purple { background: var(--purple-light); color: var(--purple); }
+  .follow-body { flex: 1; min-width: 0; }
+  .follow-title { font-weight: 500; font-size: 13px; margin-bottom: 2px; }
+  .follow-sub { font-size: 12px; color: var(--text-secondary); }
+  .follow-time { font-size: 11px; color: var(--text-tertiary); white-space: nowrap; margin-left: 12px; }
+  .due-today { color: var(--red); font-weight: 500; }
+
+  /* AI PANEL */
+  .ai-badge { background: var(--blue-light); color: var(--blue); font-size: 11px; padding: 3px 8px; border-radius: var(--radius-md); font-weight: 500; display: inline-flex; align-items: center; gap: 4px; }
+  .ai-insight { background: var(--bg-secondary); border-radius: var(--radius-md); padding: 10px 12px; margin-bottom: 8px; font-size: 13px; line-height: 1.5; }
+  .ai-action { display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; border-radius: var(--radius-md); border: 0.5px solid var(--border); margin-bottom: 6px; cursor: pointer; transition: background 0.1s; font-size: 13px; }
+  .ai-action:hover { background: var(--bg-secondary); }
+  .ai-action i { color: var(--blue); font-size: 15px; margin-top: 1px; flex-shrink: 0; }
+  .ai-action-label { font-weight: 500; margin-bottom: 2px; }
+  .ai-action-sub { color: var(--text-secondary); font-size: 12px; }
+  .ai-generate-btn { background: none; border: 0.5px solid var(--border-md); border-radius: var(--radius-md); padding: 8px 14px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; color: var(--blue); transition: background 0.1s; }
+  .ai-generate-btn:hover { background: var(--blue-light); }
+  .ai-result-box { background: var(--bg-secondary); border-radius: var(--radius-md); padding: 12px; font-size: 13px; line-height: 1.6; margin-top: 10px; display: none; }
+  .ai-result-box.show { display: block; }
+  .ai-loading { color: var(--text-tertiary); font-style: italic; }
+  .lead-list-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 0.5px solid var(--border); font-size: 13px; cursor: pointer; transition: background 0.1s; }
+  .lead-list-row:hover { background: var(--bg-secondary); }
+  .lead-list-row:last-child { border-bottom: none; }
+
+  /* MODAL */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; display: none; align-items: center; justify-content: center; padding: 16px; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--bg-primary); border-radius: var(--radius-xl); border: 0.5px solid var(--border); padding: 24px; width: 580px; max-width: 100%; max-height: 90vh; overflow-y: auto; }
+  .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .modal-title { font-size: 16px; font-weight: 500; }
+  .close-btn { background: none; border: none; cursor: pointer; color: var(--text-secondary); font-size: 18px; padding: 6px; border-radius: var(--radius-md); display: flex; }
+  .close-btn:hover { background: var(--bg-secondary); }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1 / -1; }
+  .form-label { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
+  .form-group input, .form-group select, .form-group textarea { font-size: 13px; padding: 8px 10px; border: 0.5px solid var(--border-md); border-radius: var(--radius-md); background: var(--bg-primary); color: var(--text-primary); outline: none; transition: border-color 0.15s; width: 100%; }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--blue); }
+  .form-group textarea { resize: vertical; min-height: 72px; }
+
+  /* CHART */
+  .chart-wrap { position: relative; width: 100%; height: 220px; }
+
+  /* NOTIFICATION DOT */
+  .notif-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--red); display: inline-block; margin-left: 2px; }
+
+  /* SEARCH INPUT */
+  .search-input { font-size: 13px; padding: 6px 10px; border: 0.5px solid var(--border-md); border-radius: var(--radius-md); background: var(--bg-primary); color: var(--text-primary); outline: none; }
+  .search-input:focus { border-color: var(--blue); }
+  select.filter-select { font-size: 13px; padding: 6px 10px; border: 0.5px solid var(--border-md); border-radius: var(--radius-md); background: var(--bg-primary); color: var(--text-primary); outline: none; cursor: pointer; }
+
+  /* TOAST */
+  .toast { position: fixed; bottom: 24px; right: 24px; background: var(--text-primary); color: var(--bg-primary); padding: 10px 16px; border-radius: var(--radius-md); font-size: 13px; z-index: 300; opacity: 0; transform: translateY(8px); transition: opacity 0.2s, transform 0.2s; pointer-events: none; }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  @media (max-width: 600px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .form-group.full { grid-column: 1; }
+    .two-col { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="crm-root">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-logo"><i class="ti ti-school"></i> AcademiaCRM</div>
+    <div class="topbar-nav">
+      <button class="nav-btn active" onclick="showPage('dashboard')"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
+      <button class="nav-btn" onclick="showPage('leads')"><i class="ti ti-building"></i> Leads</button>
+      <button class="nav-btn" onclick="showPage('pipeline')"><i class="ti ti-layout-kanban"></i> Pipeline</button>
+      <button class="nav-btn" onclick="showPage('followups')"><i class="ti ti-bell"></i> Follow-ups <span class="notif-dot"></span></button>
+      <button class="nav-btn" onclick="showPage('ai')"><i class="ti ti-sparkles"></i> AI Intelligence</button>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn-primary" onclick="openModal()"><i class="ti ti-plus"></i> Add Lead</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-label">Overview</div>
+        <div class="sidebar-item active" onclick="showPage('dashboard');setSide(this)"><i class="ti ti-layout-dashboard"></i> Dashboard</div>
+        <div class="sidebar-item" onclick="showPage('leads');setSide(this)"><i class="ti ti-building"></i> All Leads <span class="badge-count" id="totalBadge">12</span></div>
+        <div class="sidebar-item" onclick="showPage('pipeline');setSide(this)"><i class="ti ti-layout-kanban"></i> Pipeline</div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-label">Automation</div>
+        <div class="sidebar-item" onclick="showPage('followups');setSide(this)"><i class="ti ti-bell"></i> Follow-ups <span class="badge-count hot">4</span></div>
+        <div class="sidebar-item" onclick="showPage('ai');setSide(this)"><i class="ti ti-sparkles"></i> AI Intelligence</div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-label">Priority</div>
+        <div class="sidebar-item" style="cursor:default"><span class="priority-dot p-high"></span> High <span class="badge-count">3</span></div>
+        <div class="sidebar-item" style="cursor:default"><span class="priority-dot p-med"></span> Medium <span class="badge-count">5</span></div>
+        <div class="sidebar-item" style="cursor:default"><span class="priority-dot p-low"></span> Low <span class="badge-count">4</span></div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- DASHBOARD PAGE -->
+      <div class="page active" id="page-dashboard">
+        <div class="section-header">
+          <div class="section-title">Sales overview</div>
+          <div style="font-size:12px;color:var(--text-tertiary)">June 2025</div>
+        </div>
+        <div class="metric-grid">
+          <div class="metric-card"><div class="metric-label">Total leads</div><div class="metric-value" style="color:var(--blue)">48</div><div class="metric-delta up">↑ 8 this month</div></div>
+          <div class="metric-card"><div class="metric-label">Active</div><div class="metric-value" style="color:var(--amber)">29</div><div class="metric-delta up">↑ 3 this week</div></div>
+          <div class="metric-card"><div class="metric-label">Meetings set</div><div class="metric-value">11</div><div class="metric-delta">5 upcoming</div></div>
+          <div class="metric-card"><div class="metric-label">Closed deals</div><div class="metric-value" style="color:#3B6D11">7</div><div class="metric-delta up">↑ 2 this month</div></div>
+          <div class="metric-card"><div class="metric-label">Proposals out</div><div class="metric-value">6</div><div class="metric-delta">₹18L pipeline</div></div>
+        </div>
+        <div class="two-col">
+          <div class="card">
+            <div class="card-title"><i class="ti ti-chart-bar"></i> Pipeline by stage</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;font-size:11px;color:var(--text-secondary)">
+              <span style="display:flex;align-items:center;gap:3px"><span style="width:9px;height:9px;border-radius:2px;background:#185FA5"></span>Lead count</span>
+            </div>
+            <div class="chart-wrap">
+              <canvas id="pipelineChart" role="img" aria-label="Pipeline stages: New 12, Contacted 9, Meeting 7, Proposal 6, Negotiation 5, Closed 7">New:12 Contacted:9 Meeting:7 Proposal:6 Negotiation:5 Closed:7</canvas>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title"><i class="ti ti-chart-donut"></i> Institutions by type</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;font-size:11px;color:var(--text-secondary)">
+              <span style="display:flex;align-items:center;gap:3px"><span style="width:9px;height:9px;border-radius:2px;background:#185FA5"></span>University</span>
+              <span style="display:flex;align-items:center;gap:3px"><span style="width:9px;height:9px;border-radius:2px;background:#1D9E75"></span>Engineering</span>
+              <span style="display:flex;align-items:center;gap:3px"><span style="width:9px;height:9px;border-radius:2px;background:#EF9F27"></span>Management</span>
+              <span style="display:flex;align-items:center;gap:3px"><span style="width:9px;height:9px;border-radius:2px;background:#7F77DD"></span>Polytechnic</span>
+            </div>
+            <div class="chart-wrap" style="height:190px">
+              <canvas id="typeChart" role="img" aria-label="Institution types: University 40%, Engineering 28%, Management 20%, Polytechnic 12%">University 40% Engineering 28% Management 20% Polytechnic 12%</canvas>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title"><i class="ti ti-trending-up"></i> Monthly lead acquisition</div>
+          <div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:8px;font-size:11px;color:var(--text-secondary)">
+            <span style="display:flex;align-items:center;gap:3px"><span style="width:16px;height:2px;background:#185FA5;border-radius:1px"></span>New leads</span>
+            <span style="display:flex;align-items:center;gap:3px"><span style="width:16px;height:2px;background:#1D9E75;border-radius:1px;border-top:1px dashed #1D9E75"></span>Closed</span>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="trendChart" role="img" aria-label="Monthly trends Jan–Jun 2025 showing new leads and closed deals">Monthly lead acquisition Jan to Jun 2025</canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- LEADS PAGE -->
+      <div class="page" id="page-leads">
+        <div class="section-header">
+          <div class="section-title">All institutions</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <input class="search-input" placeholder="Search institutions..." oninput="filterLeads(this.value)" style="width:180px" />
+            <select class="filter-select" onchange="filterByStatus(this.value)">
+              <option value="">All statuses</option>
+              <option>New Lead</option><option>Contacted</option><option>Meeting Scheduled</option><option>Proposal Sent</option><option>Negotiation</option><option>Closed</option>
+            </select>
+          </div>
+        </div>
+        <div class="card" style="padding:0">
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th>Institution</th><th>Location</th><th>Contact</th><th>Type</th><th>Students</th><th>Program Interest</th><th>Priority</th><th>Status</th>
+              </tr></thead>
+              <tbody id="leadsTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- PIPELINE PAGE -->
+      <div class="page" id="page-pipeline">
+        <div class="section-header">
+          <div class="section-title">Sales pipeline</div>
+          <div style="font-size:12px;color:var(--text-tertiary)">Kanban view — <span id="pipelineSummary"></span></div>
+        </div>
+        <div class="pipeline" id="pipelineBoard"></div>
+      </div>
+
+      <!-- FOLLOW-UPS PAGE -->
+      <div class="page" id="page-followups">
+        <div class="section-header"><div class="section-title">Follow-up tasks</div></div>
+        <div class="tab-bar">
+          <div class="tab active" onclick="switchFollowTab('today',this)">Due today</div>
+          <div class="tab" onclick="switchFollowTab('upcoming',this)">Upcoming</div>
+          <div class="tab" onclick="switchFollowTab('completed',this)">Completed</div>
+        </div>
+        <div class="card" id="followContent"></div>
+      </div>
+
+      <!-- AI INTELLIGENCE PAGE -->
+      <div class="page" id="page-ai">
+        <div class="section-header">
+          <div class="section-title">AI lead intelligence</div>
+          <span class="ai-badge"><i class="ti ti-sparkles" style="font-size:11px"></i> Powered by Claude</span>
+        </div>
+        <div class="two-col">
+          <div>
+            <div class="card">
+              <div class="card-title"><i class="ti ti-target"></i> High-priority leads</div>
+              <div id="aiLeadList"></div>
+            </div>
+          </div>
+          <div>
+            <div class="card" id="aiDetailPanel">
+              <div style="color:var(--text-tertiary);font-size:13px;text-align:center;padding:24px 0">Select a lead to view AI insights</div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title"><i class="ti ti-mail"></i> AI outreach generator</div>
+          <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+            <div style="flex:1;min-width:180px">
+              <div class="form-label" style="margin-bottom:5px">Select institution</div>
+              <select id="outreachSelect" style="font-size:13px;padding:7px 10px;width:100%;border:0.5px solid var(--border-md);border-radius:var(--radius-md);background:var(--bg-primary);color:var(--text-primary);outline:none"></select>
+            </div>
+            <div style="flex:1;min-width:160px">
+              <div class="form-label" style="margin-bottom:5px">Tone</div>
+              <select id="toneSelect" style="font-size:13px;padding:7px 10px;width:100%;border:0.5px solid var(--border-md);border-radius:var(--radius-md);background:var(--bg-primary);color:var(--text-primary);outline:none">
+                <option>Professional &amp; formal</option>
+                <option>Friendly &amp; conversational</option>
+                <option>Value-focused</option>
+              </select>
+            </div>
+            <button class="ai-generate-btn" onclick="generateOutreach()"><i class="ti ti-sparkles"></i> Generate email</button>
+          </div>
+          <div id="outreachResult" class="ai-result-box"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ADD LEAD MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Add new institution lead</div>
+      <button class="close-btn" onclick="closeModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group full"><div class="form-label">Institution name *</div><input id="f-name" placeholder="e.g. GLA University" /></div>
+      <div class="form-group"><div class="form-label">Location *</div><input id="f-location" placeholder="City, State" /></div>
+      <div class="form-group"><div class="form-label">Institution type</div>
+        <select id="f-type"><option>University</option><option>Engineering College</option><option>Management College</option><option>Polytechnic</option><option>Deemed University</option></select>
+      </div>
+      <div class="form-group"><div class="form-label">Contact person</div><input id="f-contact" placeholder="Name &amp; designation" /></div>
+      <div class="form-group"><div class="form-label">Email</div><input id="f-email" type="email" placeholder="contact@institution.ac.in" /></div>
+      <div class="form-group"><div class="form-label">Phone</div><input id="f-phone" placeholder="+91 XXXXX XXXXX" /></div>
+      <div class="form-group"><div class="form-label">Student strength</div>
+        <select id="f-students"><option>Under 1,000</option><option>1,000–3,000</option><option>3,000–5,000</option><option>5,000–10,000</option><option>10,000+</option></select>
+      </div>
+      <div class="form-group"><div class="form-label">Lead source</div>
+        <select id="f-source"><option>LinkedIn</option><option>Referral</option><option>Conference</option><option>Cold outreach</option><option>Inbound inquiry</option><option>Website</option></select>
+      </div>
+      <div class="form-group full"><div class="form-label">Program interest</div><input id="f-program" placeholder="e.g. Data Science, Cloud Computing, Cybersecurity" /></div>
+      <div class="form-group full"><div class="form-label">Lead status</div>
+        <select id="f-status"><option>New Lead</option><option>Contacted</option><option>Meeting Scheduled</option><option>Proposal Sent</option><option>Negotiation</option><option>Closed</option></select>
+      </div>
+      <div class="form-group full"><div class="form-label">Notes</div><textarea id="f-notes" placeholder="Any relevant context, previous interactions, special requirements..."></textarea></div>
+    </div>
+    <div style="margin-top:16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <button class="ai-generate-btn" onclick="scoreNewLead()"><i class="ti ti-cpu"></i> AI score this lead</button>
+    </div>
+    <div id="scoreResult" class="ai-result-box"></div>
+    <div style="margin-top:16px;display:flex;justify-content:flex-end;gap:8px">
+      <button onclick="closeModal()" style="background:none;border:0.5px solid var(--border-md);padding:8px 16px;border-radius:var(--radius-md);font-size:13px;cursor:pointer;color:var(--text-primary)">Cancel</button>
+      <button class="btn-primary" onclick="saveNewLead()">Save lead</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+const LEADS = [
+  {id:1,name:"GLA University",loc:"Mathura, UP",contact:"Dr. Anil Sharma",email:"placement@gla.ac.in",phone:"+91 98765 43210",type:"University",students:"5,000–10,000",program:"Data Science, Cloud Computing",source:"LinkedIn",status:"Negotiation",priority:"high",score:92,owner:"Priya S.",notes:"Previous training partnership experience. Dean is actively looking for tech upskilling."},
+  {id:2,name:"MIT Manipal",loc:"Manipal, KA",contact:"Prof. Kavitha Rao",email:"training@manipal.edu",phone:"+91 82341 56789",type:"University",students:"10,000+",program:"AI/ML, Cybersecurity",source:"Referral",status:"Proposal Sent",priority:"high",score:88,owner:"Rahul M.",notes:"Large student base. Looking for semester-long certification programs."},
+  {id:3,name:"Amity University Noida",loc:"Noida, UP",contact:"Dr. Priya Verma",email:"ctp@amity.edu",phone:"+91 95100 34567",type:"Deemed University",students:"10,000+",program:"Full Stack, DevOps",source:"Conference",status:"Meeting Scheduled",priority:"high",score:85,owner:"Priya S.",notes:"Meeting scheduled for June 28. Decision maker confirmed."},
+  {id:4,name:"SRM Institute",loc:"Chennai, TN",contact:"Mr. Venkat Rajan",email:"industry@srmist.edu.in",phone:"+91 91234 78901",type:"Deemed University",students:"10,000+",program:"Data Analytics",source:"Cold outreach",status:"Contacted",priority:"medium",score:74,owner:"Arjun K.",notes:"Initial call done. Follow-up email sent."},
+  {id:5,name:"VIT Vellore",loc:"Vellore, TN",contact:"Dr. Sunita Nair",email:"training@vit.ac.in",phone:"+91 78901 23456",type:"University",students:"10,000+",program:"Cloud Computing, AI",source:"LinkedIn",status:"New Lead",priority:"medium",score:71,owner:"Rahul M.",notes:"Identified via LinkedIn. Large tech-focused campus."},
+  {id:6,name:"Chandigarh University",loc:"Chandigarh, PB",contact:"Prof. Harpreet Singh",email:"tpo@cuchd.in",phone:"+91 70000 11234",type:"University",students:"5,000–10,000",program:"Cybersecurity",source:"Inbound inquiry",status:"Contacted",priority:"medium",score:68,owner:"Priya S.",notes:"Inquired via website form. Interested in batch training."},
+  {id:7,name:"Lovely Professional University",loc:"Phagwara, PB",contact:"Dr. Raman Bedi",email:"industry@lpu.in",phone:"+91 80001 99123",type:"University",students:"10,000+",program:"Data Science",source:"Referral",status:"New Lead",priority:"medium",score:66,owner:"Arjun K.",notes:"Referred by GLA contact. Very large campus."},
+  {id:8,name:"KIIT Bhubaneswar",loc:"Bhubaneswar, OD",contact:"Prof. Ananya Das",email:"cdc@kiit.ac.in",phone:"+91 72341 00234",type:"Deemed University",students:"5,000–10,000",program:"Full Stack Development",source:"LinkedIn",status:"Proposal Sent",priority:"medium",score:64,owner:"Rahul M.",notes:"Proposal sent last week. Awaiting response."},
+  {id:9,name:"Poornima College of Engg.",loc:"Jaipur, RJ",contact:"Mr. Aakash Meena",email:"placement@poornima.org",phone:"+91 94141 12345",type:"Engineering College",students:"3,000–5,000",program:"IoT, Embedded Systems",source:"Conference",status:"Negotiation",priority:"high",score:80,owner:"Priya S.",notes:"Discussed pricing. Budget approval pending with management."},
+  {id:10,name:"Bharati Vidyapeeth",loc:"Pune, MH",contact:"Dr. Smita Joshi",email:"irc@bvp.edu.in",phone:"+91 98223 45678",type:"University",students:"5,000–10,000",program:"Data Science, ML",source:"Cold outreach",status:"Closed",priority:"low",score:95,owner:"Arjun K.",notes:"Deal closed. MoU signed. Program starts July 2025."},
+  {id:11,name:"Thapar Institute",loc:"Patiala, PB",contact:"Prof. Rajiv Kumar",email:"ir@thapar.edu",phone:"+91 77009 87654",type:"Deemed University",students:"3,000–5,000",program:"Cybersecurity, Cloud",source:"Referral",status:"Meeting Scheduled",priority:"medium",score:72,owner:"Rahul M.",notes:"Meeting set for July 2."},
+  {id:12,name:"Malaviya NIT",loc:"Jaipur, RJ",contact:"Dr. Lokesh Sharma",email:"crc@mnit.ac.in",phone:"+91 98290 12345",type:"Engineering College",students:"3,000–5,000",program:"AI/ML",source:"LinkedIn",status:"Contacted",priority:"low",score:55,owner:"Arjun K.",notes:"First contact made. Response awaited."},
+];
+
+const STATUS_ORDER = ["New Lead","Contacted","Meeting Scheduled","Proposal Sent","Negotiation","Closed"];
+const STATUS_CLASS = {"New Lead":"s-new","Contacted":"s-contacted","Meeting Scheduled":"s-meeting","Proposal Sent":"s-proposal","Negotiation":"s-nego","Closed":"s-closed"};
+const PIPELINE_CLASS = {"New Lead":"ph-new","Contacted":"ph-contacted","Meeting Scheduled":"ph-meeting","Proposal Sent":"ph-proposal","Negotiation":"ph-nego","Closed":"ph-closed"};
+const AV_COLORS = ["av-blue","av-green","av-amber","av-purple"];
+
+function getInitials(name){ return name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
+
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  const map={dashboard:0,leads:1,pipeline:2,followups:3,ai:4};
+  document.querySelectorAll('.nav-btn')[map[id]].classList.add('active');
+  if(id==='pipeline') renderPipeline();
+  if(id==='leads') renderLeadsTable(LEADS);
+  if(id==='followups') renderFollowUps('today');
+  if(id==='ai') renderAiPage();
+  if(id==='dashboard') renderCharts();
+}
+
+function setSide(el){
+  document.querySelectorAll('.sidebar-item').forEach(i=>i.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function renderLeadsTable(data){
+  const tb=document.getElementById('leadsTable'); tb.innerHTML='';
+  data.forEach((l,i)=>{
+    const av=AV_COLORS[i%4];
+    tb.innerHTML+=`<tr>
+      <td><div style="display:flex;align-items:center;gap:8px">
+        <div class="avatar ${av}">${getInitials(l.name)}</div>
+        <div><div style="font-weight:500">${l.name}</div><div style="font-size:11px;color:var(--text-tertiary)">${l.owner}</div></div>
+      </div></td>
+      <td style="color:var(--text-secondary)">${l.loc}</td>
+      <td><div>${l.contact}</div><div style="font-size:11px;color:var(--text-tertiary)">${l.email}</div></td>
+      <td style="color:var(--text-secondary)">${l.type}</td>
+      <td style="color:var(--text-secondary)">${l.students}</td>
+      <td>${l.program}</td>
+      <td><span style="display:flex;align-items:center;gap:4px"><span class="priority-dot p-${l.priority}"></span>${l.priority}</span></td>
+      <td><span class="status-pill ${STATUS_CLASS[l.status]}">${l.status}</span></td>
+    </tr>`;
+  });
+}
+
+function filterLeads(q){
+  renderLeadsTable(LEADS.filter(l=>l.name.toLowerCase().includes(q.toLowerCase())||l.loc.toLowerCase().includes(q.toLowerCase())||l.contact.toLowerCase().includes(q.toLowerCase())));
+}
+function filterByStatus(s){ renderLeadsTable(s?LEADS.filter(l=>l.status===s):LEADS); }
+
+function renderPipeline(){
+  const board=document.getElementById('pipelineBoard'); board.innerHTML='';
+  let total=0;
+  STATUS_ORDER.forEach(stage=>{
+    const leads=LEADS.filter(l=>l.status===stage);
+    total+=leads.length;
+    const col=document.createElement('div'); col.className='pipeline-col';
+    col.innerHTML=`<div class="pipeline-header ${PIPELINE_CLASS[stage]}">${stage}<span>${leads.length}</span></div>`;
+    leads.forEach(l=>{
+      col.innerHTML+=`<div class="lead-card">
+        <div class="lead-name">${l.name}</div>
+        <div class="lead-meta"><span class="priority-dot p-${l.priority}"></span>${l.loc}</div>
+        <div class="lead-meta" style="margin-top:2px">${l.program.split(',')[0]}</div>
+        <div class="score-bar"><div class="score-fill" style="width:${l.score}%"></div></div>
+        <div style="font-size:10px;color:var(--text-tertiary);margin-top:3px">AI score: ${l.score}</div>
+      </div>`;
+    });
+    board.appendChild(col);
+  });
+  document.getElementById('pipelineSummary').textContent=total+' leads across 6 stages';
+}
+
+const FOLLOWUPS={
+  today:[
+    {icon:"ti-phone",color:"fi-blue",title:"Call Dr. Anil Sharma — GLA University",sub:"Discuss negotiation terms for Data Science batch. Budget ₹4.5L discussed.",time:"Due today",urgent:true},
+    {icon:"ti-mail",color:"fi-amber",title:"Follow-up email — KIIT Bhubaneswar",sub:"Proposal sent 5 days ago. Check if they received and have questions.",time:"Due today",urgent:true},
+    {icon:"ti-calendar",color:"fi-purple",title:"Meeting prep — Amity University",sub:"Review program requirements. Prepare customized curriculum overview.",time:"2:00 PM",urgent:true},
+    {icon:"ti-file-text",color:"fi-green",title:"Send revised proposal — Poornima College",sub:"Update pricing with discount as discussed. Attach client references.",time:"5:00 PM",urgent:true},
+  ],
+  upcoming:[
+    {icon:"ti-calendar",color:"fi-blue",title:"Meeting: Thapar Institute",sub:"Intro call with Prof. Rajiv Kumar and HOD CS department.",time:"Jul 2, 11am",urgent:false},
+    {icon:"ti-mail",color:"fi-amber",title:"Quarterly outreach — VIT Vellore",sub:"Send updated program catalog and batch schedule for July.",time:"Jul 1",urgent:false},
+    {icon:"ti-phone",color:"fi-purple",title:"Follow-up — Chandigarh University",sub:"They asked for references. Schedule call after sending them.",time:"Jun 30",urgent:false},
+    {icon:"ti-file-text",color:"fi-green",title:"Proposal prep — Malaviya NIT",sub:"Prepare AI/ML workshop proposal based on initial conversation.",time:"Jul 3",urgent:false},
+  ],
+  completed:[
+    {icon:"ti-check",color:"fi-green",title:"MoU signed — Bharati Vidyapeeth",sub:"Deal closed. ₹6.2L program starting July 2025.",time:"Jun 20",urgent:false},
+    {icon:"ti-mail",color:"fi-blue",title:"Email sent — SRM Institute",sub:"Follow-up email with program details and testimonials.",time:"Jun 18",urgent:false},
+    {icon:"ti-calendar",color:"fi-purple",title:"Meeting done — MIT Manipal",sub:"Good discussion. Proposal to be sent this week.",time:"Jun 15",urgent:false},
+  ]
+};
+
+function renderFollowUps(tab){
+  const c=document.getElementById('followContent'); c.innerHTML='';
+  FOLLOWUPS[tab].forEach(f=>{
+    c.innerHTML+=`<div class="follow-item">
+      <div class="follow-icon ${f.color}"><i class="ti ${f.icon}" style="font-size:15px"></i></div>
+      <div class="follow-body">
+        <div class="follow-title">${f.title}</div>
+        <div class="follow-sub">${f.sub}</div>
+      </div>
+      <div class="follow-time ${f.urgent?'due-today':''}">${f.time}</div>
+    </div>`;
+  });
+}
+
+function switchFollowTab(tab,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderFollowUps(tab);
+}
+
+function renderAiPage(){
+  const list=document.getElementById('aiLeadList'); list.innerHTML='';
+  const top=LEADS.filter(l=>l.score>=60).sort((a,b)=>b.score-a.score).slice(0,6);
+  top.forEach((l,i)=>{
+    const av=AV_COLORS[i%4];
+    list.innerHTML+=`<div class="lead-list-row" onclick="showAiDetail(${l.id})">
+      <div class="avatar ${av}" style="width:34px;height:34px;font-size:12px">${getInitials(l.name)}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:500;font-size:13px">${l.name}</div>
+        <div style="font-size:11px;color:var(--text-secondary)">${l.loc} · ${l.type}</div>
+      </div>
+      <div style="text-align:right;margin-right:8px">
+        <div style="font-size:15px;font-weight:500;color:${l.score>=80?'var(--blue)':l.score>=65?'var(--amber)':'#3B6D11'}">${l.score}</div>
+        <div style="font-size:10px;color:var(--text-tertiary)">AI score</div>
+      </div>
+      <span class="priority-dot p-${l.priority}"></span>
+    </div>`;
+  });
+
+  const sel=document.getElementById('outreachSelect'); sel.innerHTML='';
+  LEADS.forEach(l=>{ sel.innerHTML+=`<option value="${l.id}">${l.name}</option>`; });
+}
+
+const AI_INSIGHTS={
+  1:{score:92,priority:"High",reason:"5,000–10,000 student base, previous training partnership, VP-level contact confirmed, active negotiation stage",actions:[{icon:"ti-phone",label:"Schedule closing call",sub:"Book 30-min slot with Dr. Anil Sharma this week"},{icon:"ti-file-text",label:"Send final pricing",sub:"Include volume discount for 500+ student batch"},{icon:"ti-award",label:"Share success stories",sub:"Send case studies from similar universities"}]},
+  2:{score:88,priority:"High",reason:"10,000+ students, top-tier brand, proposal sent — high conversion likelihood, AI/ML budget confirmed",actions:[{icon:"ti-clock",label:"Follow up on proposal",sub:"5 days since send — ideal time to check in"},{icon:"ti-users",label:"Propose pilot batch",sub:"Offer 50-student pilot to reduce procurement risk"}]},
+  3:{score:85,priority:"High",reason:"Meeting confirmed June 28. Decision maker present. Large campus with strong industry tie-up track record.",actions:[{icon:"ti-presentation",label:"Prep meeting deck",sub:"Customize slides for Amity's program focus"},{icon:"ti-calendar",label:"Send pre-meeting brief",sub:"Share agenda 24 hrs before to set expectations"}]},
+  9:{score:80,priority:"High",reason:"Budget approval in progress. Specific IoT requirement aligned with our offering. Warm engagement throughout.",actions:[{icon:"ti-currency-rupee",label:"Offer flexible payment",sub:"Propose installment model to ease budget concern"},{icon:"ti-mail",label:"Send ROI report",sub:"Quantify value: placement rates, skill uplift data"}]},
+};
+
+function showAiDetail(id){
+  const l=LEADS.find(x=>x.id===id);
+  const ins=AI_INSIGHTS[id]||{score:l.score,priority:l.priority==='high'?'High':l.priority==='medium'?'Medium':'Low',reason:`${l.students} students, ${l.type.toLowerCase()}, interested in ${l.program}`,actions:[{icon:"ti-mail",label:"Send intro email",sub:"Personalized outreach based on program interest"},{icon:"ti-phone",label:"Schedule discovery call",sub:"Understand their training calendar and budget"}]};
+  const panel=document.getElementById('aiDetailPanel');
+  panel.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div>
+        <div style="font-weight:500;font-size:14px">${l.name}</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:2px">${l.loc} · ${l.type}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:24px;font-weight:500;color:${ins.score>=80?'var(--blue)':'var(--amber)'}">${ins.score}</div>
+        <div style="font-size:11px;color:var(--text-tertiary)">${ins.priority} priority</div>
+      </div>
+    </div>
+    <div style="font-size:12px;font-weight:500;color:var(--text-secondary);margin-bottom:6px">Why this score</div>
+    <div class="ai-insight">${ins.reason}</div>
+    <div style="font-size:12px;font-weight:500;color:var(--text-secondary);margin:12px 0 6px">Next best actions</div>
+    ${ins.actions.map(a=>`<div class="ai-action"><i class="ti ${a.icon}"></i><div><div class="ai-action-label">${a.label}</div><div class="ai-action-sub">${a.sub}</div></div></div>`).join('')}
+    <button class="ai-generate-btn" style="margin-top:12px;width:100%;justify-content:center" onclick="document.getElementById('outreachSelect').value='${l.id}';showPage('ai');document.getElementById('outreachSelect').closest('.card').scrollIntoView({behavior:'smooth'})"><i class="ti ti-mail"></i> Generate outreach email</button>`;
+}
+
+async function generateOutreach(){
+  const lid=document.getElementById('outreachSelect').value;
+  const tone=document.getElementById('toneSelect').value;
+  const l=LEADS.find(x=>x.id==lid);
+  const box=document.getElementById('outreachResult');
+  box.classList.add('show');
+  box.innerHTML='<span class="ai-loading">⏳ Generating personalized email via Claude AI...</span>';
+  try{
+    const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,messages:[{role:"user",content:`Write a ${tone} B2B outreach email for a company that delivers technical training programs to universities. Target institution: ${l.name}, located in ${l.loc}, a ${l.type} with ${l.students} students. Contact: ${l.contact}. Program interest: ${l.program}. Current status: ${l.status}. Context: ${l.notes}. Write a compelling, concise email (150–180 words) with a subject line. Format:\nSubject: ...\n\n[email body]`}]})});
+    const d=await resp.json();
+    const text=d.content.map(c=>c.text||'').join('');
+    box.innerHTML=`<div style="font-size:12px;font-weight:500;color:var(--text-secondary);margin-bottom:8px">Generated email — copy and send via your email client</div><pre style="white-space:pre-wrap;font-size:13px;line-height:1.7;font-family:inherit">${text}</pre>`;
+  }catch(e){
+    box.innerHTML='<span style="color:var(--red)">Could not generate email. Please check your internet connection and try again.</span>';
+  }
+}
+
+async function scoreNewLead(){
+  const name=document.getElementById('f-name').value;
+  const type=document.getElementById('f-type').value;
+  const students=document.getElementById('f-students').value;
+  const program=document.getElementById('f-program').value;
+  const notes=document.getElementById('f-notes').value;
+  if(!name){ showToast('Please enter the institution name first'); return; }
+  const box=document.getElementById('scoreResult');
+  box.classList.add('show');
+  box.innerHTML='<span class="ai-loading">⏳ Analyzing lead with AI...</span>';
+  try{
+    const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:400,messages:[{role:"user",content:`Score this B2B academic sales lead out of 100 and give a priority level (High/Medium/Low) with 2–3 sentence reasoning. Lead: ${name}, ${type}, ${students} students, interested in ${program||'technical training'}. Notes: ${notes||'None provided'}. Format your response as:\nScore: X/100\nPriority: Y\nReason: Z`}]})});
+    const d=await resp.json();
+    box.innerHTML=d.content.map(c=>c.text||'').join('').replace(/\n/g,'<br>');
+  }catch(e){
+    box.innerHTML='<span style="color:var(--red)">Could not score lead. Please check your connection.</span>';
+  }
+}
+
+function saveNewLead(){
+  const name=document.getElementById('f-name').value.trim();
+  if(!name){ showToast('Please enter the institution name'); return; }
+  const newLead={
+    id:LEADS.length+1,
+    name,
+    loc:document.getElementById('f-location').value||'—',
+    contact:document.getElementById('f-contact').value||'—',
+    email:document.getElementById('f-email').value||'—',
+    phone:document.getElementById('f-phone').value||'—',
+    type:document.getElementById('f-type').value,
+    students:document.getElementById('f-students').value,
+    program:document.getElementById('f-program').value||'—',
+    source:document.getElementById('f-source').value,
+    status:document.getElementById('f-status').value,
+    priority:'medium',
+    score:Math.floor(Math.random()*30)+50,
+    owner:'Unassigned',
+    notes:document.getElementById('f-notes').value||''
+  };
+  LEADS.push(newLead);
+  document.getElementById('totalBadge').textContent=LEADS.length;
+  closeModal();
+  showToast('Lead added: '+name);
+  renderLeadsTable(LEADS);
+}
+
+function openModal(){
+  document.getElementById('modal').classList.add('open');
+  document.getElementById('f-name').focus();
+}
+function closeModal(){
+  document.getElementById('modal').classList.remove('open');
+  document.getElementById('scoreResult').classList.remove('show');
+  document.getElementById('scoreResult').innerHTML='';
+  ['f-name','f-location','f-contact','f-email','f-phone','f-program','f-notes'].forEach(id=>{ document.getElementById(id).value=''; });
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+let chartsRendered=false;
+function renderCharts(){
+  if(chartsRendered) return; chartsRendered=true;
+  const isDark=window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const gridColor=isDark?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.05)';
+  const tickColor=isDark?'#888780':'#888780';
+
+  new Chart(document.getElementById('pipelineChart'),{type:'bar',data:{labels:['New','Contacted','Meeting','Proposal','Negotiation','Closed'],datasets:[{label:'Leads',data:[12,9,7,6,5,7],backgroundColor:'#185FA5',borderRadius:4,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:3,font:{size:11},color:tickColor},grid:{color:gridColor}},x:{ticks:{font:{size:11},color:tickColor},grid:{display:false}}}}});
+
+  new Chart(document.getElementById('typeChart'),{type:'doughnut',data:{labels:['University','Engineering','Management','Polytechnic'],datasets:[{data:[40,28,20,12],backgroundColor:['#185FA5','#1D9E75','#EF9F27','#7F77DD'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},cutout:'65%'}});
+
+  new Chart(document.getElementById('trendChart'),{type:'line',data:{labels:['Jan','Feb','Mar','Apr','May','Jun'],datasets:[{label:'New leads',data:[5,8,7,11,9,14],borderColor:'#185FA5',backgroundColor:'rgba(24,95,165,0.08)',tension:0.4,fill:true,pointRadius:4,pointBackgroundColor:'#185FA5',pointBorderWidth:0},{label:'Closed',data:[1,2,1,3,2,4],borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,0.06)',tension:0.4,fill:true,pointRadius:4,pointBackgroundColor:'#1D9E75',pointBorderWidth:0,borderDash:[5,3]}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{font:{size:11},color:tickColor},grid:{color:gridColor}},x:{ticks:{font:{size:11},color:tickColor},grid:{display:false}}}}});
+}
+
+// Init
+renderCharts();
+renderLeadsTable(LEADS);
+</script>
+</body>
+</html>
